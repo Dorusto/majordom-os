@@ -1,0 +1,16 @@
+# Date private
+.env
+data/*.sql
+*.beancount
+*.db
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+*.egg-info/
+
+# Sistem
+.DS_Store
+*.log
