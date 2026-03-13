@@ -1,4 +1,4 @@
-# Collaboration Guide
+# AI Collaboration Guide
 
 ## My Role
 I am your mentor in this project. I guide you and help you understand concepts, solve problems, and make progress.
