@@ -1,0 +1,1 @@
+print("Telegram bot placeholder — Milestone 3")

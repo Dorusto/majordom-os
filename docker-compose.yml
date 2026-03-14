@@ -1,0 +1,97 @@
+services:
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: majordom_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - majordom_network
+
+  # ═══════════════════════════════════════════════════════════════════
+  # OPȚIUNEA 1 — Ollama în Docker (INACTIVĂ)
+  # Decomentează tot blocul de mai jos dacă vrei Ollama în container.
+  # Va descărca automat modelul (~4GB) la primul start.
+  # Nu uita să schimbi și OLLAMA_HOST în .env la: http://ollama:11434
+  # ═══════════════════════════════════════════════════════════════════
+  # ollama:
+  #   image: ollama/ollama
+  #   container_name: majordom_ollama
+  #   restart: unless-stopped
+  #   volumes:
+  #     - ollama_data:/root/.ollama
+  #   entrypoint: >
+  #     /bin/sh -c "
+  #     ollama serve &
+  #     sleep 5 &&
+  #     ollama pull ${OLLAMA_MODEL:-llama3} &&
+  #     wait
+  #     "
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "ollama list || exit 1"]
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 5
+  #     start_period: 60s
+  #   networks:
+  #     - majordom_network
+
+  # ═══════════════════════════════════════════════════════════════════
+  # OPȚIUNEA 2 — Ollama pe server local (ACTIVĂ)
+  # Serverul Ollama rulează la 10.10.1.99:11434
+  # OLLAMA_HOST în .env este setat deja la http://10.10.1.99:11434
+  # ═══════════════════════════════════════════════════════════════════
+
+  app:
+    build: ./app
+    container_name: majordom_app
+    restart: unless-stopped
+    ports:
+      - "${APP_PORT:-8501}:8501"
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_PORT: ${POSTGRES_PORT}
+      OLLAMA_HOST: ${OLLAMA_HOST}
+      OLLAMA_MODEL: ${OLLAMA_MODEL}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - majordom_network
+
+  telegram-bot:
+    build: ./telegram_bot
+    container_name: majordom_telegram
+    restart: unless-stopped
+    environment:
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+      TELEGRAM_USER_ID: ${TELEGRAM_USER_ID}
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_PORT: ${POSTGRES_PORT}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - majordom_network
+
+volumes:
+  postgres_data:
+  # ollama_data:   # decomentează dacă activezi Opțiunea 1
+
+networks:
+  majordom_network:
+    driver: bridge
